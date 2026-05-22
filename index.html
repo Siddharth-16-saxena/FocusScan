@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusScan // Minimalist Productivity & Workflow Analytics Command Center</title>
+  <meta name="description" content="A premium, clean analytics platform for tracking workflow metrics, camera attention indices, and SQL database analytics.">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="minimal-theme">
+
+  <!-- App Wrapper -->
+  <div class="app-wrapper">
+    <!-- Sleek Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon-wrap">
+          <svg class="logo-svg" viewBox="0 0 24 24" width="20" height="20">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>Focus<span>Scan</span></h1>
+          <span class="sub-logo">WORKFLOW METRICS & ATTENTION SYSTEMS</span>
+        </div>
+      </div>
+      
+      <!-- Minimalist State Metrics -->
+      <div class="header-metrics">
+        <div class="status-metric-pill" id="status-productivity-pill">
+          <span class="pill-dot color-pulse-green"></span>
+          <span class="pill-label">METRIC GATEWAY:</span>
+          <span class="pill-value" id="system-state-val">ACTIVE</span>
+        </div>
+        <div class="status-metric-pill" id="status-focus-pill">
+          <span class="pill-dot color-pulse-blue"></span>
+          <span class="pill-label">ATTENTION FLOW:</span>
+          <span class="pill-value" id="current-flow-val">85%</span>
+        </div>
+      </div>
+
+      <!-- Quick Toggles -->
+      <div class="header-actions">
+        <button id="btn-ambient-sound" class="btn btn-secondary btn-icon-only" title="Toggle procedural soundscape (Pink Noise)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </button>
+        <button id="btn-toggle-camera" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          ACTIVATE CAMERA
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Clean Layout Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- LEFT SECTION: Camera HUD & AI Coach -->
+      <section class="grid-col col-left flex-column">
+        
+        <!-- Webcam Attention Analyzer -->
+        <div class="glass-card camera-card flex-column" id="card-attention-vision">
+          <div class="card-header border-bottom-none">
+            <div class="header-title">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <h3>Attention Telemetry</h3>
+            </div>
+            <div class="card-badges">
+              <span class="badge" id="camera-status-badge">STANDBY</span>
+            </div>
+          </div>
+          
+          <div class="camera-viewport-container">
+            <div class="video-placeholder" id="camera-placeholder">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" class="margin-bottom-sm">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <p>Camera feed disabled. Activate streaming to gauge physical focus variables via pixel delta comparison.</p>
+              <button class="btn btn-secondary btn-sm" id="btn-camera-inline-start">Enable Webcam</button>
+            </div>
+            
+            <video id="webcam" autoplay playsinline muted style="display: none;"></video>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+            
+            <!-- Minimalist Tech Bounding Box -->
+            <div class="hud-layer" id="attention-hud" style="display: none;">
+              <div class="hud-target-brackets"></div>
+              <div class="hud-readout-label top-left">GAZE_TRACK: <span id="hud-gaze-state">LOCK</span></div>
+              <div class="hud-readout-label top-right">MOTION_DELTA: <span id="hud-restless-val">0.0%</span></div>
+              <div class="hud-readout-label bottom-left">FLOW_INDEX: <span id="hud-attention-val">HIGH</span></div>
+              
+              <div class="hud-tracking-box">
+                <div class="focus-crosshair"></div>
+                <span class="focus-label">USER_ENGAGED</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="camera-metrics-row">
+            <div class="micro-stat">
+              <span class="micro-label">FLOW TELEMETRY</span>
+              <span class="micro-val text-blue" id="cam-engagement-stat">94%</span>
+            </div>
+            <div class="micro-stat">
+              <span class="micro-label">BLINK TOTAL</span>
+              <span class="micro-val" id="cam-blink-stat">0</span>
+            </div>
+            <div class="micro-stat">
+              <span class="micro-label">DRIFT ACTIONS</span>
+              <span class="micro-val text-rose" id="cam-distraction-stat">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI System Coach Console -->
+        <div class="glass-card coach-card flex-grow flex-column" id="card-ai-coach">
+          <div class="card-header border-bottom-none">
+            <div class="header-title">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <h3>System Optimization Advisor</h3>
+            </div>
+            <span class="advisor-indicator text-blue">MODEL_READY</span>
+          </div>
+          
+          <div class="coach-chat-history flex-grow" id="coach-messages">
+            <!-- Simulated Coach Intro -->
+            <div class="chat-message coach">
+              <div class="avatar-sm">SYS</div>
+              <div class="message-bubble">
+                <p>Telemetry system initialized. I will analyze your local task backlog, camera focus indices, and SQL metric schemas to synthesize optimization guidelines. Select endpoints or drop log files to run diagnostics.</p>
+                <div class="message-timestamp">SYSTEM STARTUP</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="coach-input-area">
+            <input type="text" id="coach-input" placeholder="Type prompt (e.g. 'MySQL delays', 'bottleneck rules')..." />
+            <button class="btn btn-secondary btn-icon-only" id="btn-coach-send">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- MIDDLE SECTION: Companion wireframe, Timer, and Task Backlog -->
+      <section class="grid-col col-middle flex-column">
+        
+        <!-- Geometric Minimalist Wireframe Companion Mascot -->
+        <div class="glass-card mascot-card flex-column align-items-center justify-content-center" id="card-focus-mascot">
+          <div class="mascot-viewport">
+            <!-- Wireframe Elegant SVG Companion -->
+            <svg id="mascot-svg" class="flowy-mascot float-anim" viewBox="0 0 200 200" width="140" height="140">
+              <defs>
+                <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <!-- Minimalist Rotating Radar lines -->
+              <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              
+              <!-- Structural Geometric Mesh -->
+              <!-- Hexagonal central frame -->
+              <polygon points="100,45 147,72 147,128 100,155 53,128 53,72" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+              
+              <!-- Inner connection lines -->
+              <line x1="100" y1="45" x2="100" y2="155" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="53" y1="72" x2="147" y2="128" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="53" y1="128" x2="147" y2="72" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              
+              <!-- Clean Central Core Orb -->
+              <circle cx="100" cy="100" r="30" fill="rgba(15,23,42,0.8)" stroke="#2563eb" stroke-width="2" filter="url(#subtleGlow)" id="mascot-core"/>
+              
+              <!-- Geometric Status Indicators (Eyes) -->
+              <circle id="pupil-left" cx="88" cy="96" r="4" fill="#ffffff" filter="url(#subtleGlow)"/>
+              <circle id="pupil-right" cx="112" cy="96" r="4" fill="#ffffff" filter="url(#subtleGlow)"/>
+              
+              <!-- Dynamic Minimalist Expression bar (Mouth) -->
+              <path id="flowy-mouth" d="M92 110 L108 110" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          
+          <div class="mascot-mood-info text-center">
+            <h4>FLOW_CORE ENGINE</h4>
+            <div class="mood-badge" id="mascot-mood-text">STATE: DYNAMIC_CALIBRATION</div>
+            <p class="mascot-subtext" id="mascot-speech">"Telemetry system operational. Ingest CSV log files or begin countdown to initiate analytics calculations."</p>
+          </div>
+        </div>
+
+        <!-- Sleek Monochrome Pomodoro Countdown -->
+        <div class="glass-card timer-card flex-column" id="card-focus-timer">
+          <div class="timer-display-area">
+            <div class="progress-ring-wrap">
+              <svg width="150" height="150" viewBox="0 0 180 180">
+                <circle class="ring-bg" cx="90" cy="90" r="76" stroke-width="3" fill="transparent"/>
+                <circle class="ring-fg" id="timer-progress-bar" cx="90" cy="90" r="76" stroke-width="4.5" fill="transparent" stroke="#2563eb" stroke-dasharray="477" stroke-dashoffset="0"/>
+              </svg>
+              <div class="timer-text-content">
+                <span class="timer-digits" id="timer-digits">25:00</span>
+                <span class="timer-mode" id="timer-mode-label">FOCUS BLOCK</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="timer-controls">
+            <button class="btn btn-secondary btn-sm" id="btn-timer-reset">RESET</button>
+            <button class="btn btn-primary btn-sm" id="btn-timer-start">START WORK</button>
+            <button class="btn btn-secondary btn-sm" id="btn-timer-break">BREAK</button>
+          </div>
+        </div>
+
+        <!-- Clean Task Checklist Backlog -->
+        <div class="glass-card tasks-card flex-grow flex-column" id="card-tasks-list">
+          <div class="card-header border-bottom-none">
+            <div class="header-title">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="12" x2="15" y2="12"/>
+                <line x1="12" y1="9" x2="12" y2="15"/>
+              </svg>
+              <h3>Productivity Task Backlog</h3>
+            </div>
+            <div class="task-count" id="task-completed-fraction">0/3 DONE</div>
+          </div>
+          
+          <div class="task-input-wrapper">
+            <input type="text" id="task-input" placeholder="Append structural task target..." />
+            <button class="btn btn-secondary btn-sm" id="btn-add-task">APPEND</button>
+          </div>
+          
+          <ul class="task-list-items flex-grow" id="task-list-element">
+            <!-- Mock tasks preloaded -->
+            <li class="task-item" data-id="1">
+              <label class="custom-checkbox-label">
+                <input type="checkbox" class="task-checkbox" />
+                <span class="checkbox-box"></span>
+                <span class="task-text">Formulate structured MySQL model definitions</span>
+              </label>
+              <span class="task-category-tag db">DATABASE</span>
+            </li>
+            <li class="task-item" data-id="2">
+              <label class="custom-checkbox-label">
+                <input type="checkbox" class="task-checkbox" />
+                <span class="checkbox-box"></span>
+                <span class="task-text">Establish Node.js backend task bottleneck listeners</span>
+              </label>
+              <span class="task-category-tag backend">BACKEND</span>
+            </li>
+            <li class="task-item" data-id="3">
+              <label class="custom-checkbox-label">
+                <input type="checkbox" class="task-checkbox" />
+                <span class="checkbox-box"></span>
+                <span class="task-text">Integrate Python Pandas metrics analyzer script</span>
+              </label>
+              <span class="task-category-tag py">ANALYTICS</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- RIGHT SECTION: Tabbed Panel (Pandas Analyzer, MySQL Explorer, Swagger REST Sandbox) -->
+      <section class="grid-col col-right flex-column">
+        
+        <!-- Tabbed Navigation Panel -->
+        <div class="glass-card tab-panel-card flex-grow flex-column">
+          <div class="tab-header-buttons">
+            <button class="tab-btn active" data-tab="tab-pandas">PANDAS LOGS</button>
+            <button class="tab-btn" data-tab="tab-mysql">MYSQL DISK</button>
+            <button class="tab-btn" data-tab="tab-swagger">REST SWAGGER</button>
+          </div>
+
+          <!-- TAB 1: PANDAS CSV ENGINE -->
+          <div class="tab-content active" id="tab-pandas">
+            <div class="pandas-container flex-column flex-grow">
+              <div class="tab-internal-header">
+                <h4>Pandas Core Data Ingestion</h4>
+                <a href="#" id="download-sample-link" class="action-link">Get sample.csv</a>
+              </div>
+              
+              <!-- Drag and drop zone -->
+              <div class="upload-dropzone" id="log-uploader">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" class="margin-bottom-sm text-slate-400">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="dropzone-prompt">Drag & drop workflow log file (.csv)</p>
+                <span class="dropzone-alt">or click to browse local files</span>
+                <input type="file" id="log-file-input" accept=".csv" style="display: none;"/>
+              </div>
+
+              <!-- Pandas Monospaced Console -->
+              <div class="pandas-insights-console">
+                <div class="console-header">
+                  <span class="console-title">pandas_analyzer.py</span>
+                </div>
+                <div class="console-body" id="pandas-console-log">
+                  <div class="log-line system-line">[info] FocusScan Pandas engine loaded in memory scope.</div>
+                  <div class="log-line system-line">[info] Awaiting CSV ingestion for delay analysis.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: INTERACTIVE MYSQL SCHEMA & QUERY EXPLORER -->
+          <div class="tab-content" id="tab-mysql">
+            <div class="mysql-container flex-column flex-grow">
+              <div class="tab-internal-header">
+                <h4>MySQL Relational Schema Engine</h4>
+                <span class="db-size-badge">3 tables</span>
+              </div>
+              
+              <div class="schema-code-block">
+                <pre><code><span class="sql-kw">CREATE TABLE</span> workflow_metrics (
+  task_id <span class="sql-type">INT PRIMARY KEY</span>,
+  task_name <span class="sql-type">VARCHAR(128)</span>,
+  duration_hours <span class="sql-type">DECIMAL(5,2)</span>,
+  delay_hours <span class="sql-type">DECIMAL(5,2)</span>,
+  service_node <span class="sql-type">VARCHAR(32)</span>
+);</code></pre>
+              </div>
+
+              <!-- Custom SQL Query Execution Module -->
+              <div class="sql-query-executor flex-column">
+                <label class="sql-input-label">SQL Execution Query Panel</label>
+                <div class="sql-action-row">
+                  <select id="sql-query-preset" class="sql-select">
+                    <option value="all">SELECT * FROM workflow_metrics;</option>
+                    <option value="bottlenecks">SELECT * FROM workflow_metrics WHERE delay_hours > 1.5;</option>
+                    <option value="heavy">SELECT * FROM workflow_metrics ORDER BY duration_hours DESC;</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" id="btn-execute-sql">RUN QUERY</button>
+                </div>
+              </div>
+
+              <!-- SQL Output parsed Table -->
+              <div class="sql-result-wrapper flex-grow">
+                <div class="sql-table-caption" id="sql-results-meta">Awaiting query execution...</div>
+                <div class="sql-table-overflow">
+                  <table class="sql-result-table" id="sql-result-table-el">
+                    <thead>
+                      <tr>
+                        <th>task_id</th>
+                        <th>task_name</th>
+                        <th>duration_hours</th>
+                        <th>delay_hours</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="4" class="text-center text-slate-500">Run preset query above to retrieve MySQL operational records.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: SWAGGER REST API SANDBOX -->
+          <div class="tab-content" id="tab-swagger">
+            <div class="swagger-container flex-column flex-grow">
+              <div class="tab-internal-header">
+                <h4>OpenAPI REST Router Gateway</h4>
+                <span class="api-env-badge">v1 (Production)</span>
+              </div>
+
+              <p class="swagger-intro-text">Simulate client calls against planned Node.js and Python gateway handlers. Review JSON payload payloads instantly.</p>
+
+              <!-- REST Route list -->
+              <div class="api-endpoints-stack">
+                <!-- Route 1 -->
+                <div class="api-route-accordion">
+                  <div class="accordion-trigger" data-route="focus">
+                    <span class="api-badge-method get">GET</span>
+                    <span class="api-badge-path">/api/v1/metrics/focus</span>
+                    <button class="btn btn-secondary btn-xs btn-try-api" data-api="focus">TRY OUT</button>
+                  </div>
+                </div>
+
+                <!-- Route 2 -->
+                <div class="api-route-accordion">
+                  <div class="accordion-trigger" data-route="bottlenecks">
+                    <span class="api-badge-method get">GET</span>
+                    <span class="api-badge-path">/api/v1/metrics/bottlenecks</span>
+                    <button class="btn btn-secondary btn-xs btn-try-api" data-api="bottlenecks">TRY OUT</button>
+                  </div>
+                </div>
+
+                <!-- Route 3 -->
+                <div class="api-route-accordion">
+                  <div class="accordion-trigger" data-route="tasks">
+                    <span class="api-badge-method post">POST</span>
+                    <span class="api-badge-path">/api/v1/metrics/tasks</span>
+                    <button class="btn btn-secondary btn-xs btn-try-api" data-api="tasks">TRY OUT</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- JSON API Response Box -->
+              <div class="api-response-json-box flex-grow flex-column">
+                <div class="json-box-header">
+                  <span>REST API JSON RESPONSE TELEMETRY</span>
+                  <span class="json-status-code" id="api-response-status">200 OK</span>
+                </div>
+                <pre class="json-code-viewer"><code id="api-json-viewer-el">{
+  "status": "gateway_standby",
+  "gateway": "NodeJS-REST-Server",
+  "timestamp": 1779435600
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sleek Operational Charts Card -->
+        <div class="glass-card charts-card flex-column" id="card-visual-insights">
+          <div class="card-header border-bottom-none">
+            <div class="header-title">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <h3>Operational delay variance</h3>
+            </div>
+          </div>
+          
+          <div class="chart-canvas-wrapper flex-grow">
+            <canvas id="insights-chart"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <p>FocusScan Core v1.5.0-Release // Pure JS Client-side Telemetry Sandboxed Sandbox</p>
+      </div>
+      <div class="footer-right">
+        <span>Architected for Scalability & Workflow Inefficiency Diagnosis</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Main script -->
+  <script src="app.js"></script>
+</body>
+</html>
