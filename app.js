@@ -151,6 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastFrameData = null;
 
   async function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      appendLog("pandas-console-log", "[error] Ocular API deactivated by browser (Secure Context Required). Please deploy to Vercel (HTTPS) or run a local server (http://localhost) to enable.", "error-line");
+      el.cameraStatusBadge.textContent = 'SECURE REQ';
+      el.cameraStatusBadge.className = 'badge text-rose';
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 320, height: 240, frameRate: { max: 15 } }, 
