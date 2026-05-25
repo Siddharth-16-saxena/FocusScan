@@ -1,11 +1,11 @@
 /* ==========================================================================
-   FOCUSSCAN - MINIMAL SYSTEM CONTROLLER (JAVASCRIPT ENGINE)
+   FOCUSSCAN - SYSTEM CONTROLLER & CORE JAVASCRIPT ENGINE
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   
   // ==========================================================================
-  // 1. STATE CONFIGURATION
+  // 1. STATE & THEME CONFIGURATION
   // ==========================================================================
   const state = {
     focusScore: 85,
@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     audioCtx: null,
     soundscapeNode: null,
     isPlayingSound: false,
+    lowpassFilter: null,
 
     // Task Checklist
     tasks: [
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ingestedLogs: null,
     activeChart: null,
 
-    // MySQL Database Simulator Rows
+    // Simulated Relational Database Records (Live state queryable by custom SQL)
     mysqlDatabase: [
       { task_id: 1, task_name: "Data Migration Pipeline", duration_hours: 4.2, delay_hours: 1.8, service_node: "NodeJS-Gateway" },
       { task_id: 2, task_name: "MySQL Index Optimization", duration_hours: 2.5, delay_hours: 0.4, service_node: "NodeJS-Gateway" },
@@ -48,6 +49,47 @@ document.addEventListener('DOMContentLoaded', () => {
       { task_id: 5, task_name: "Java Job Synchronization", duration_hours: 8.4, delay_hours: 4.9, service_node: "Java-Scheduler" }
     ]
   };
+
+  // Color Theme Config Palette
+  const themeColors = {
+    cobalt: {
+      primary: '#2563eb',
+      subtle: 'rgba(37, 99, 235, 0.1)',
+      glow: 'rgba(37, 99, 235, 0.15)',
+      chartBg1: 'rgba(37, 99, 235, 0.4)',
+      chartBorder1: '#2563eb'
+    },
+    emerald: {
+      primary: '#10b981',
+      subtle: 'rgba(16, 185, 129, 0.1)',
+      glow: 'rgba(16, 185, 129, 0.15)',
+      chartBg1: 'rgba(16, 185, 129, 0.4)',
+      chartBorder1: '#10b981'
+    },
+    amber: {
+      primary: '#f59e0b',
+      subtle: 'rgba(245, 158, 11, 0.1)',
+      glow: 'rgba(245, 158, 11, 0.15)',
+      chartBg1: 'rgba(245, 158, 11, 0.4)',
+      chartBorder1: '#f59e0b'
+    },
+    lavender: {
+      primary: '#8b5cf6',
+      subtle: 'rgba(139, 92, 246, 0.1)',
+      glow: 'rgba(139, 92, 246, 0.15)',
+      chartBg1: 'rgba(139, 92, 246, 0.4)',
+      chartBorder1: '#8b5cf6'
+    },
+    rose: {
+      primary: '#f43f5e',
+      subtle: 'rgba(244, 63, 94, 0.1)',
+      glow: 'rgba(244, 63, 94, 0.15)',
+      chartBg1: 'rgba(244, 63, 94, 0.4)',
+      chartBorder1: '#f43f5e'
+    }
+  };
+
+  let activeThemeKey = 'cobalt';
 
   // ==========================================================================
   // 2. DOM CACHE SELECTORS
@@ -58,9 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAmbientSound: document.getElementById('btn-ambient-sound'),
     systemStateVal: document.getElementById('system-state-val'),
     currentFlowVal: document.getElementById('current-flow-val'),
+    themePicker: document.getElementById('theme-accent-picker'),
 
     // Camera HUD
     cameraPlaceholder: document.getElementById('camera-placeholder'),
+    cameraSecureWarning: document.getElementById('camera-secure-warning'),
+    copyServerCmd: document.getElementById('copy-server-cmd'),
     btnCamInlineStart: document.getElementById('btn-camera-inline-start'),
     webcam: document.getElementById('webcam'),
     cameraCanvas: document.getElementById('camera-canvas'),
@@ -74,7 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
     camBlinkStat: document.getElementById('cam-blink-stat'),
     camDistractionStat: document.getElementById('cam-distraction-stat'),
 
-    // Mascot (Wireframe SVG)
+    // Mascot Viewport & Elements
+    mascotViewport: document.getElementById('mascot-viewport-element'),
+    mascotSvg: document.getElementById('mascot-svg'),
     pupilLeft: document.getElementById('pupil-left'),
     pupilRight: document.getElementById('pupil-right'),
     flowyMouth: document.getElementById('flowy-mouth'),
@@ -108,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tab 2: MySQL Explorer
     sqlQueryPreset: document.getElementById('sql-query-preset'),
+    sqlCustomInput: document.getElementById('sql-custom-input'),
     btnExecuteSql: document.getElementById('btn-execute-sql'),
     sqlResultsMeta: document.getElementById('sql-results-meta'),
     sqlResultTable: document.getElementById('sql-result-table-el'),
@@ -129,12 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
   el.tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetTab = btn.getAttribute('data-tab');
-      
-      // Toggle button active classes
       el.tabButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
-      // Toggle tab active content panels
       el.tabContents.forEach(content => {
         if (content.id === targetTab) {
           content.classList.add('active');
@@ -146,17 +191,54 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================================================
-  // 4. WEBCAM TELEMETRY & ATTENTION SCAFFOLDING (MOTION SCANNER)
+  // 4. ZOOM / MAXIMIZE FOCUS CONTROLLERS
+  // ==========================================================================
+  document.querySelectorAll('.btn-card-zoom').forEach(zoomBtn => {
+    zoomBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetId = zoomBtn.getAttribute('data-zoom-target');
+      const card = document.getElementById(targetId);
+      
+      if (!card) return;
+
+      const isMaximized = card.classList.toggle('maximized');
+      
+      // Update Zoom Icon paths
+      if (isMaximized) {
+        zoomBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/>
+          </svg>
+        `;
+        zoomBtn.setAttribute('title', 'Collapse Card');
+      } else {
+        zoomBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+          </svg>
+        `;
+        zoomBtn.setAttribute('title', 'Toggle Fullscreen Focus');
+      }
+    });
+  });
+
+  // ==========================================================================
+  // 5. WEBCAM COMPUTER VISION & GRID TELEMETRY
   // ==========================================================================
   let lastFrameData = null;
 
   async function startCamera() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      appendLog("pandas-console-log", "[error] Ocular API deactivated by browser (Secure Context Required). Please deploy to Vercel (HTTPS) or run a local server (http://localhost) to enable.", "error-line");
-      el.cameraStatusBadge.textContent = 'SECURE REQ';
-      el.cameraStatusBadge.className = 'badge text-rose';
+    // Diagnose Secure Browser context requirements
+    if (window.location.protocol === 'file:') {
+      showCameraSecureWarning();
       return;
     }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showCameraSecureWarning();
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 320, height: 240, frameRate: { max: 15 } }, 
@@ -166,12 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
       el.webcam.style.display = 'block';
       el.cameraCanvas.style.display = 'block';
       el.cameraPlaceholder.style.display = 'none';
+      el.cameraSecureWarning.style.display = 'none';
       el.attentionHud.style.display = 'block';
       el.cameraStatusBadge.textContent = 'MONITORING';
       el.cameraStatusBadge.className = 'badge text-blue';
       state.cameraActive = true;
+      
       el.btnToggleCam.innerHTML = `
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
           <line x1="9" y1="9" x2="15" y2="15"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
@@ -179,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         STOP TELEMETRY
       `;
 
-      // Start delta frame analysis
+      // Start actual gray-scale pixel variance delta analyzer
       const ctx = el.cameraCanvas.getContext('2d');
       state.cameraInterval = setInterval(() => {
         analyzeCameraFrame(ctx);
@@ -187,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       appendLog("pandas-console-log", "[info] Webcam attention monitor stream active. calibrating ocular vectors.");
     } catch (err) {
-      console.warn("Camera failed: ", err);
+      console.warn("Camera access failed: ", err);
       el.cameraStatusBadge.textContent = 'ERROR';
       el.cameraStatusBadge.className = 'badge text-rose';
       appendLog("pandas-console-log", "[error] Secure camera frame ingestion denied by client device.", "error-line");
@@ -202,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.webcam.style.display = 'none';
     el.cameraCanvas.style.display = 'none';
     el.cameraPlaceholder.style.display = 'flex';
+    el.cameraSecureWarning.style.display = 'none';
     el.attentionHud.style.display = 'none';
     el.cameraStatusBadge.textContent = 'STANDBY';
     el.cameraStatusBadge.className = 'badge';
@@ -212,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.cameraInterval = null;
     }
     el.btnToggleCam.innerHTML = `
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
         <circle cx="12" cy="13" r="4"/>
       </svg>
@@ -225,6 +310,32 @@ document.addEventListener('DOMContentLoaded', () => {
     resetMascotFace();
   }
 
+  function showCameraSecureWarning() {
+    el.cameraPlaceholder.style.display = 'none';
+    el.webcam.style.display = 'none';
+    el.cameraCanvas.style.display = 'none';
+    el.attentionHud.style.display = 'none';
+    el.cameraSecureWarning.style.display = 'flex';
+    el.cameraStatusBadge.textContent = 'SECURE REQ';
+    el.cameraStatusBadge.className = 'badge text-rose';
+    appendLog("pandas-console-log", "[error] Ocular stream blocked: Browser requires HTTPS or http://localhost pathways to activate cameras.", "error-line");
+  }
+
+  // Double-Click/Click copy command actions
+  el.copyServerCmd.addEventListener('click', () => {
+    navigator.clipboard.writeText("npx http-server ./");
+    const oldText = el.copyServerCmd.innerText;
+    el.copyServerCmd.innerText = "COPIED TO CLIPBOARD!";
+    el.copyServerCmd.style.borderColor = "var(--accent-emerald)";
+    el.copyServerCmd.style.color = "var(--accent-emerald)";
+    setTimeout(() => {
+      el.copyServerCmd.innerText = oldText;
+      el.copyServerCmd.style.borderColor = "";
+      el.copyServerCmd.style.color = "";
+    }, 1500);
+  });
+
+  // Mathematical Grayscale Grid Difference Computer Vision
   function analyzeCameraFrame(ctx) {
     if (!el.webcam.videoWidth) return;
     
@@ -249,18 +360,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const normalizedDiff = (totalDiff / (pixelCount * 3 * 255)) * 100;
       
       // Calculate restless motion index
-      let currentMovement = Math.min(100, normalizedDiff * 9); 
-      state.restlessness = (state.restlessness * 0.7) + (currentMovement * 0.3); // smooth dampening
+      let currentMovement = Math.min(100, normalizedDiff * 9.5); 
+      state.restlessness = (state.restlessness * 0.6) + (currentMovement * 0.4); // smooth dampening
       
-      if (state.restlessness > 10) {
+      if (state.restlessness > 8.5) {
         state.gazeState = 'DRIFT';
-        if (Math.random() < 0.12) {
+        if (Math.random() < 0.1) {
           state.distractionCount++;
           triggerDistractionAlert();
         }
       } else {
         state.gazeState = 'LOCK';
-        if (Math.random() < 0.05) {
+        // Eye Blink Simulation using localized micro brightness shifts
+        if (Math.random() < 0.04) {
           state.blinkCount++;
           animateMascotBlink();
         }
@@ -279,20 +391,20 @@ document.addEventListener('DOMContentLoaded', () => {
     el.hudRestlessVal.textContent = state.restlessness.toFixed(1) + '%';
     
     let focusStatus = 'HIGH';
-    if (state.restlessness > 10) {
+    if (state.restlessness > 8.5) {
       focusStatus = 'LOW';
-      el.hudAttentionVal.style.color = '#e11d48';
-    } else if (state.restlessness > 5) {
+      el.hudAttentionVal.style.color = 'var(--accent-rose)';
+    } else if (state.restlessness > 4) {
       focusStatus = 'STABLE';
-      el.hudAttentionVal.style.color = '#94a3b8';
+      el.hudAttentionVal.style.color = 'var(--accent-amber)';
     } else {
       focusStatus = 'LOCK';
-      el.hudAttentionVal.style.color = '#2563eb';
+      el.hudAttentionVal.style.color = 'var(--accent-primary)';
     }
     el.hudAttentionVal.textContent = focusStatus;
 
-    // Flow Score calculation
-    let calculatedFlow = Math.max(10, 100 - (state.restlessness * 3.5) - (state.distractionCount * 4));
+    // Live Flow Score math
+    let calculatedFlow = Math.max(10, 100 - (state.restlessness * 4) - (state.distractionCount * 3.5));
     state.focusScore = Math.round(calculatedFlow);
     el.currentFlowVal.textContent = state.focusScore + '%';
     el.camEngagementStat.textContent = Math.round(state.focusScore) + '%';
@@ -300,14 +412,20 @@ document.addEventListener('DOMContentLoaded', () => {
     el.camDistractionStat.textContent = state.distractionCount;
 
     if (state.focusScore > 80) {
-      el.systemStateVal.textContent = "FLOW FLOW";
+      el.systemStateVal.textContent = "FLOW CORE";
       el.systemStateVal.style.color = "var(--accent-emerald)";
     } else if (state.focusScore > 50) {
       el.systemStateVal.textContent = "STABLE";
-      el.systemStateVal.style.color = "var(--accent-blue)";
+      el.systemStateVal.style.color = "var(--accent-primary)";
     } else {
       el.systemStateVal.textContent = "ATTN_DRIFT";
       el.systemStateVal.style.color = "var(--accent-rose)";
+    }
+
+    // Web Audio deep soundscape feedback binding
+    if (state.isPlayingSound && state.lowpassFilter) {
+      const activeFilterFreq = state.gazeState === 'DRIFT' ? 220 : 380; // deeper wash on focus drift
+      state.lowpassFilter.frequency.setTargetAtTime(activeFilterFreq, state.audioCtx.currentTime, 0.4);
     }
   }
 
@@ -316,23 +434,50 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // 5. GEOMETRIC WIREFRAME COMPANION EXPRESSIONS
+  // 6. GEOMETRIC MASCOT EYE-TRACKING & ALIVE INTERACTIONS
   // ==========================================================================
+  
+  // Dynamic eye tracking of cursor coordinates anywhere on screen
+  window.addEventListener('mousemove', (e) => {
+    if (!el.mascotViewport || state.gazeState === 'DRIFT') return;
+
+    const rect = el.mascotViewport.getBoundingClientRect();
+    const mascotCenterX = rect.left + rect.width / 2;
+    const mascotCenterY = rect.top + rect.height / 2;
+
+    const angle = Math.atan2(e.clientY - mascotCenterY, e.clientX - mascotCenterX);
+    const distance = Math.sqrt(Math.pow(e.clientX - mascotCenterX, 2) + Math.pow(e.clientY - mascotCenterY, 2));
+
+    const maxEyeOffset = 4.5; // Constrain pupils inside orbits
+    const eyeMovementRatio = Math.min(maxEyeOffset, distance / 70);
+
+    const pupilXOffset = Math.cos(angle) * eyeMovementRatio;
+    const pupilYOffset = Math.sin(angle) * eyeMovementRatio;
+
+    // Apply translations to pupils
+    el.pupilLeft.setAttribute('cx', (88 + pupilXOffset).toString());
+    el.pupilLeft.setAttribute('cy', (96 + pupilYOffset).toString());
+    el.pupilRight.setAttribute('cx', (112 + pupilXOffset).toString());
+    el.pupilRight.setAttribute('cy', (96 + pupilYOffset).toString());
+  });
+
   function resetMascotFace() {
     el.pupilLeft.setAttribute('cx', '88');
+    el.pupilLeft.setAttribute('cy', '96');
     el.pupilRight.setAttribute('cx', '112');
+    el.pupilRight.setAttribute('cy', '96');
     el.flowyMouth.setAttribute('d', 'M92 110 L108 110');
-    el.mascotCore.setAttribute('stroke', '#2563eb');
+    el.mascotCore.setAttribute('stroke', 'var(--accent-primary)');
     el.mascotMoodText.textContent = "STATE: DYNAMIC_CALIBRATION";
     el.mascotSpeech.textContent = '"Awaiting metrics execution or camera stream calibration."';
   }
 
   function updateMascotExpression() {
     if (state.gazeState === 'DRIFT') {
-      // Pupils shift outward (drift look)
-      el.pupilLeft.setAttribute('cx', '85');
-      el.pupilRight.setAttribute('cx', '115');
-      // Mouth curves flat-down
+      el.pupilLeft.setAttribute('cx', '84');
+      el.pupilLeft.setAttribute('cy', '98');
+      el.pupilRight.setAttribute('cx', '116');
+      el.pupilRight.setAttribute('cy', '98');
       el.flowyMouth.setAttribute('d', 'M93 113 Q100 110 107 113');
       el.mascotCore.setAttribute('stroke', 'var(--accent-rose)');
       el.mascotMoodText.textContent = "STATE: FOCUS_DRIFT";
@@ -342,25 +487,20 @@ document.addEventListener('DOMContentLoaded', () => {
         '"Restlessness index threshold exceeded."',
         '"Workflow focus resilience dropping. Center screen alignment suggested."'
       ];
-      if (Math.random() < 0.05) {
+      if (Math.random() < 0.04) {
         el.mascotSpeech.textContent = speeches[Math.floor(Math.random() * speeches.length)];
       }
     } else {
-      // Pupils centered
-      el.pupilLeft.setAttribute('cx', '88');
-      el.pupilRight.setAttribute('cx', '112');
-      el.mascotCore.setAttribute('stroke', '#2563eb');
+      el.mascotCore.setAttribute('stroke', 'var(--accent-primary)');
       
-      if (state.focusScore > 85) {
-        // High Flow Smile
-        el.flowyMouth.setAttribute('d', 'M92 108 Q100 118 108 108');
+      if (state.focusScore > 80) {
+        el.flowyMouth.setAttribute('d', 'M92 108 Q100 118 108 108'); // Smile
         el.mascotMoodText.textContent = "STATE: FLOW_ZONE";
-        if (Math.random() < 0.03) {
+        if (Math.random() < 0.02) {
           el.mascotSpeech.textContent = '"Metrics show stable focus bounds. Continuous flow locked."';
         }
       } else {
-        // Flat Line Focused
-        el.flowyMouth.setAttribute('d', 'M92 110 L108 110');
+        el.flowyMouth.setAttribute('d', 'M92 110 L108 110'); // Flat focused
         el.mascotMoodText.textContent = "STATE: FOCUS_CALIBRATED";
       }
     }
@@ -375,8 +515,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 120);
   }
 
+  // Click & Double-Click Mascot Warping physics trigger
+  el.mascotViewport.addEventListener('click', () => {
+    el.mascotSvg.classList.remove('warp-pulse');
+    void el.mascotSvg.offsetWidth; // Reflow reset hack
+    el.mascotSvg.classList.add('warp-pulse');
+
+    const warps = [
+      '"Matrix recalibration sequence active! Flow core stabilized."',
+      '"Ocular variance offset reset to 0.00ms. Grid clear."',
+      '"Brownian procedural filter centering. Attention index peak values locked."',
+      '"Relational query pools compiled. Ready to scan custom log backlogs."'
+    ];
+    el.mascotSpeech.textContent = warps[Math.floor(Math.random() * warps.length)];
+    
+    // Emerald color pulse flash on mascot core
+    el.mascotCore.setAttribute('stroke', 'var(--accent-emerald)');
+    setTimeout(() => {
+      el.mascotCore.setAttribute('stroke', 'var(--accent-primary)');
+    }, 600);
+  });
+
   // ==========================================================================
-  // 6. POMODORO BLOCK TIMER & PROCEDURAL SYNTH SOUNDS
+  // 7. POMODORO TIMER WORKFLOW (AUTONOMOUS DATABASE LOG INSERTS)
   // ==========================================================================
   function updateTimerUI() {
     const mins = Math.floor(state.timerSeconds / 60);
@@ -386,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxSeconds = state.timerMode === 'FOCUS' ? 1500 : 300;
     const percentage = state.timerSeconds / maxSeconds;
     const offset = 477 - (percentage * 477);
-    el.timerProgressBar.style.strokeDashoffset = offset;
+    el.timerProgressBar.style.strokeDashoffset = offset.toString();
   }
 
   function startTimer() {
@@ -401,20 +562,36 @@ document.addEventListener('DOMContentLoaded', () => {
         state.timerSeconds--;
         updateTimerUI();
       } else {
-        // Complete block
+        // Pomodoro Cycle Complete
         clearInterval(state.timerInterval);
         state.timerInterval = null;
         state.timerRunning = false;
         
         if (state.timerMode === 'FOCUS') {
-          appendLog("pandas-console-log", "[success] Completed 25m Focus Block. MySQL workflow_metrics state updated.", "success-line");
+          // INSERT actual Completion Record directly into local MySQL Relational Database
+          const newId = state.mysqlDatabase.length + 1;
+          const pomodoroTask = {
+            task_id: newId,
+            task_name: "Focus block complete",
+            duration_hours: 0.42,
+            delay_hours: 0.0,
+            service_node: "Pomodoro-Scheduler"
+          };
+          
+          state.mysqlDatabase.push(pomodoroTask);
+          executeMockSQL("all"); // Refresh tables
+          renderChart(state.mysqlDatabase); // Refresh charts
+          
+          appendLog("pandas-console-log", "[success] Completed 25m Focus Block. MySQL database updated.", "success-line");
           state.timerSeconds = 300; // Break
           state.timerMode = 'BREAK';
           el.timerModeLabel.textContent = "REST BREAK";
+          el.timerProgressBar.style.stroke = "var(--accent-emerald)";
         } else {
           state.timerSeconds = 1500; // Focus
           state.timerMode = 'FOCUS';
           el.timerModeLabel.textContent = "FOCUS BLOCK";
+          el.timerProgressBar.style.stroke = "var(--accent-primary)";
         }
         el.btnTimerStart.textContent = "START WORK";
         el.btnTimerStart.className = "btn btn-primary btn-sm";
@@ -441,7 +618,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTimerUI();
   }
 
-  // Procedural Noise Synthesizer (Pure Web Audio - Pink/Brown Noise Focus filter)
+  // ==========================================================================
+  // 8. PROCEDURAL BROWNIAN SOUNDSCAPE ENGINE
+  // ==========================================================================
   function toggleAmbientSound() {
     if (state.isPlayingSound) {
       if (state.soundscapeNode) {
@@ -474,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
           b4 = 0.55000 * b4 + white * 0.5329522;
           b5 = -0.7616 * b5 - white * 0.0168980;
           output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-          output[i] *= 0.08; // extremely low volume
+          output[i] *= 0.06; // extremely low volume comfortable safety limits
           b6 = white * 0.115926;
         }
 
@@ -482,31 +661,32 @@ document.addEventListener('DOMContentLoaded', () => {
         whiteNoiseSource.buffer = noiseBuffer;
         whiteNoiseSource.loop = true;
 
-        const lowpassFilter = ctx.createBiquadFilter();
-        lowpassFilter.type = 'lowpass';
-        lowpassFilter.frequency.setValueAtTime(320, ctx.currentTime); // Soft low ocean wash
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(320, ctx.currentTime);
 
         const gainNode = ctx.createGain();
-        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
 
-        whiteNoiseSource.connect(lowpassFilter);
-        lowpassFilter.connect(gainNode);
+        whiteNoiseSource.connect(filter);
+        filter.connect(gainNode);
         gainNode.connect(ctx.destination);
 
         whiteNoiseSource.start(0);
         state.soundscapeNode = whiteNoiseSource;
+        state.lowpassFilter = filter;
         state.isPlayingSound = true;
         
         el.btnAmbientSound.style.color = "var(--text-white)";
-        el.btnAmbientSound.style.background = "var(--accent-blue)";
+        el.btnAmbientSound.style.background = "var(--accent-primary)";
       } catch (e) {
-        console.warn(e);
+        console.warn("Audio Context blocked: ", e);
       }
     }
   }
 
   // ==========================================================================
-  // 7. PANDAS INGESTION CORE & CSV EXPORT
+  // 9. PANDAS INGESTION CORE & FILE DRAG DRAG PARSER
   // ==========================================================================
   el.downloadSample.addEventListener('click', (e) => {
     e.preventDefault();
@@ -529,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appendLog("pandas-console-log", "[info] Downloaded workflow CSV sample structure.", "success-line");
   });
 
-  // Drag-and-drop actions
+  // Drag actions
   el.logUploader.addEventListener('dragover', (e) => {
     e.preventDefault();
     el.logUploader.classList.add('dragover');
@@ -575,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       state.ingestedLogs = rows;
       
-      // Update our simulated database contents with uploaded rows
+      // Update simulated MySQL relational model
       state.mysqlDatabase = rows.map(r => ({
         task_id: parseInt(r.task_id) || Math.floor(Math.random()*100),
         task_name: r.task_name,
@@ -584,11 +764,10 @@ document.addEventListener('DOMContentLoaded', () => {
         service_node: r.service_node || 'Gateway'
       }));
 
-      // Renders
-      renderChart(rows);
-      executeMockSQL("all");
+      // Refresh outputs
+      renderChart(state.mysqlDatabase);
+      executeMockSQL("SELECT * FROM workflow_metrics;");
 
-      // output summary
       appendLog("pandas-console-log", `>>> print(df.describe())`, "pandas-stat");
       appendLog("pandas-console-log", `df.shape = (${rows.length}, ${headers.length})`, "success-line");
       
@@ -610,54 +789,130 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // 8. INTERACTIVE MYSQL SIMULATOR SQL EXECUTION
+  // 10. LIGHTWEIGHT CLIENT-SIDE SQL INTERPRETER ENGINE
   // ==========================================================================
-  el.btnExecuteSql.addEventListener('click', () => {
-    const queryType = el.sqlQueryPreset.value;
-    executeMockSQL(queryType);
+  
+  // Prest selects copy into Custom Text Input
+  el.sqlQueryPreset.addEventListener('change', () => {
+    el.sqlCustomInput.value = el.sqlQueryPreset.value;
   });
 
-  function executeMockSQL(type) {
+  el.btnExecuteSql.addEventListener('click', () => {
+    const query = el.sqlCustomInput.value.trim();
+    executeCustomSQL(query);
+  });
+
+  // Keep select options aligned
+  function executeMockSQL(preset) {
+    if (preset === "all") executeCustomSQL("SELECT * FROM workflow_metrics;");
+    else if (preset === "bottlenecks") executeCustomSQL("SELECT * FROM workflow_metrics WHERE delay_hours > 1.5;");
+    else if (preset === "heavy") executeCustomSQL("SELECT * FROM workflow_metrics ORDER BY duration_hours DESC;");
+  }
+
+  function executeCustomSQL(queryStr) {
+    if (!queryStr) return;
+
     let resultRows = [];
-    let queryStr = "SELECT * FROM workflow_metrics;";
-    
-    if (type === "all") {
-      resultRows = [...state.mysqlDatabase];
-      queryStr = "SELECT * FROM workflow_metrics;";
-    } else if (type === "bottlenecks") {
-      resultRows = state.mysqlDatabase.filter(r => r.delay_hours > 1.5);
-      queryStr = "SELECT * FROM workflow_metrics WHERE delay_hours > 1.5;";
-    } else if (type === "heavy") {
-      resultRows = [...state.mysqlDatabase].sort((a,b) => b.duration_hours - a.duration_hours);
-      queryStr = "SELECT * FROM workflow_metrics ORDER BY duration_hours DESC;";
+    const normalized = queryStr.toLowerCase().replace(/\s+/g, ' ').replace(/;$/, '').trim();
+
+    try {
+      // Regex 1: SELECT * FROM workflow_metrics;
+      if (normalized === "select * from workflow_metrics") {
+        resultRows = [...state.mysqlDatabase];
+      } 
+      // Regex 2: SELECT * FROM workflow_metrics WHERE delay_hours > [Decimal]
+      else if (normalized.startsWith("select * from workflow_metrics where delay_hours >")) {
+        const thresholdMatch = normalized.match(/delay_hours\s*>\s*(\d+\.?\d*)/);
+        if (thresholdMatch) {
+          const limit = parseFloat(thresholdMatch[1]);
+          resultRows = state.mysqlDatabase.filter(r => r.delay_hours > limit);
+        } else {
+          throw new Error("Syntax error inside SQL WHERE evaluation");
+        }
+      } 
+      // Regex 3: SELECT * FROM workflow_metrics ORDER BY [field] [DESC/ASC]
+      else if (normalized.startsWith("select * from workflow_metrics order by")) {
+        const sortMatch = normalized.match(/order\s+by\s+(\w+)\s*(desc|asc)?/);
+        if (sortMatch) {
+          const field = sortMatch[1];
+          const desc = sortMatch[2] === 'desc';
+          
+          if (field !== 'duration_hours' && field !== 'delay_hours' && field !== 'task_id') {
+            throw new Error(`Execution error: Field '${field}' is not indexed for ordering.`);
+          }
+          
+          resultRows = [...state.mysqlDatabase].sort((a, b) => {
+            if (desc) return b[field] - a[field];
+            return a[field] - b[field];
+          });
+        } else {
+          throw new Error("Syntax error inside SQL ORDER BY evaluation");
+        }
+      } 
+      // Regex 4: INSERT INTO workflow_metrics VALUES (ID, 'Name', Duration, Delay, 'Node')
+      else if (normalized.startsWith("insert into workflow_metrics")) {
+        const insertMatch = queryStr.match(/values\s*\(\s*(\d+)\s*,\s*'([^']*)'\s*,\s*(\d+\.?\d*)\s*,\s*(\d+\.?\d*)\s*,\s*'([^']*)'\s*\)/i);
+        if (insertMatch) {
+          const newRow = {
+            task_id: parseInt(insertMatch[1]),
+            task_name: insertMatch[2],
+            duration_hours: parseFloat(insertMatch[3]),
+            delay_hours: parseFloat(insertMatch[4]),
+            service_node: insertMatch[5]
+          };
+
+          // Check duplicate key
+          if (state.mysqlDatabase.some(r => r.task_id === newRow.task_id)) {
+            throw new Error(`Unique constraint breach: Primary Key duplicate for ID ${newRow.task_id}`);
+          }
+
+          state.mysqlDatabase.push(newRow);
+          resultRows = [newRow];
+          
+          appendLog("pandas-console-log", `>>> INSERT INTO workflow_metrics VALUE (${newRow.task_id}, ...)`, "success-line");
+          renderChart(state.mysqlDatabase); // Repaint chart instantly
+        } else {
+          throw new Error("SQL Parse error: INSERT syntax invalid. Use format: INSERT INTO workflow_metrics VALUES (6, 'Task Name', 2.5, 0.4, 'Gateway')");
+        }
+      } 
+      // General fallbacks
+      else {
+        throw new Error("Query rejected: Client execution sandbox only supports queries against table 'workflow_metrics' (SELECT, WHERE, ORDER BY, INSERT).");
+      }
+
+      // Display query outputs
+      el.sqlResultsMeta.textContent = `Query executed: "${queryStr}" - Returned ${resultRows.length} rows.`;
+      el.sqlResultsMeta.style.color = "";
+      
+      // Render SQL table rows
+      const tbody = el.sqlResultTable.querySelector('tbody');
+      tbody.innerHTML = '';
+
+      if (resultRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-slate-500">Query returned empty record set.</td></tr>`;
+        return;
+      }
+
+      resultRows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.task_id}</td>
+          <td>${r.task_name}</td>
+          <td>${r.duration_hours.toFixed(2)}h</td>
+          <td class="${r.delay_hours > 1.5 ? 'text-rose' : ''}">${r.delay_hours.toFixed(2)}h</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+    } catch (sqlErr) {
+      el.sqlResultsMeta.textContent = `[SQL Error] ${sqlErr.message}`;
+      el.sqlResultsMeta.style.color = "var(--accent-rose)";
+      appendLog("pandas-console-log", `>>> [sql error] ${sqlErr.message}`, "error-line");
     }
-
-    // Update query label
-    el.sqlResultsMeta.textContent = `Query executed: "${queryStr}" - Returned ${resultRows.length} rows.`;
-
-    // Render clean table rows
-    const tbody = el.sqlResultTable.querySelector('tbody');
-    tbody.innerHTML = '';
-
-    if (resultRows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-slate-500">Query returned empty record set.</td></tr>`;
-      return;
-    }
-
-    resultRows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.task_id}</td>
-        <td>${r.task_name}</td>
-        <td>${r.duration_hours.toFixed(1)}h</td>
-        <td class="${r.delay_hours > 1.5 ? 'text-rose' : ''}">${r.delay_hours.toFixed(1)}h</td>
-      `;
-      tbody.appendChild(tr);
-    });
   }
 
   // ==========================================================================
-  // 9. OPENAPI SWAGGER REST API SANDBOX
+  // 11. OPENAPI SWAGGER REST GATEWAY (LIVE SYNC DATA BINDINGS)
   // ==========================================================================
   el.btnTryApis.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -675,6 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timestamp = Math.floor(Date.now() / 1000);
 
     if (apiKey === "focus") {
+      // Pulls active telemetry stats live
       payload = {
         status: "success",
         timestamp: timestamp,
@@ -687,10 +943,12 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         device: {
           webcam_active: state.cameraActive,
-          stream_source: "navigator.mediaDevices.getUserMedia"
+          protocol: window.location.protocol,
+          secure_context: window.isSecureContext || false
         }
       };
     } else if (apiKey === "bottlenecks") {
+      // Live parses the relational DB array
       const bottlenecks = state.mysqlDatabase.filter(r => r.delay_hours > 1.5);
       payload = {
         status: "success",
@@ -699,21 +957,21 @@ document.addEventListener('DOMContentLoaded', () => {
         anomalies: bottlenecks.map(r => ({
           task_id: r.task_id,
           task: r.task_name,
-          duration: r.duration_hours + "h",
-          operational_delay: r.delay_hours + "h",
+          duration: r.duration_hours.toFixed(2) + "h",
+          operational_delay: r.delay_hours.toFixed(2) + "h",
           service_impacted: r.service_node
         })),
-        pandas_analyzer_rules: [
-          "IF operational_delay > 1.5 THEN flag_bottleneck",
-          "IF duration_hours > 6.0 THEN trigger_queue_reindex"
+        pandas_rules: [
+          "IF operational_delay > 1.5 THEN trigger_alert",
+          "IF duration_hours > 6.0 THEN request_requeue"
         ]
       };
     } else if (apiKey === "tasks") {
       el.apiResponseStatus.textContent = "201 CREATED";
+      // Live syncs from Task checklist
       payload = {
         status: "created",
         records_inserted: state.tasks.length,
-        metrics_logged_to_mysql: true,
         backlog_details: state.tasks.map(t => ({
           task_id: t.id,
           target_description: t.text,
@@ -727,18 +985,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // 10. CHART RENDERING MODULE (CHART.JS)
+  // 12. OPERATIONAL DYNAMIC CHART CANVAS (CHART.JS BINDINGS)
   // ==========================================================================
   function renderChart(dataRows) {
-    const ctx = document.getElementById('insights-chart').getContext('2d');
+    const canvas = document.getElementById('insights-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     
     if (state.activeChart) {
       state.activeChart.destroy();
     }
 
-    const labels = dataRows.map(r => r.task_name.length > 16 ? r.task_name.slice(0, 14) + '...' : r.task_name);
+    const labels = dataRows.map(r => r.task_name.length > 15 ? r.task_name.slice(0, 13) + '...' : r.task_name);
     const durations = dataRows.map(r => parseFloat(r.duration_hours) || 0);
     const delays = dataRows.map(r => parseFloat(r.delay_hours) || 0);
+
+    const activeTheme = themeColors[activeThemeKey];
 
     state.activeChart = new Chart(ctx, {
       type: 'bar',
@@ -748,16 +1010,16 @@ document.addEventListener('DOMContentLoaded', () => {
           {
             label: 'Task Completion (Hours)',
             data: durations,
-            backgroundColor: 'rgba(37, 99, 235, 0.4)',
-            borderColor: '#2563eb',
+            backgroundColor: activeTheme.chartBg1,
+            borderColor: activeTheme.primary,
             borderWidth: 1.5,
             borderRadius: 4
           },
           {
             label: 'Operational Delay (Hours)',
             data: delays,
-            backgroundColor: 'rgba(225, 29, 72, 0.4)',
-            borderColor: '#e11d48',
+            backgroundColor: 'rgba(244, 63, 94, 0.4)',
+            borderColor: '#f43f5e',
             borderWidth: 1.5,
             borderRadius: 4
           }
@@ -789,7 +1051,149 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // 11. TEXT-ONLY SYSTEM ADVISOR CHAT
+  // 13. DYNAMIC COLOR ACCENT SWITCHER CORE
+  // ==========================================================================
+  el.themePicker.querySelectorAll('.theme-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const themeKey = pill.getAttribute('data-accent');
+      if (!themeColors[themeKey]) return;
+
+      // Update pill states
+      el.themePicker.querySelectorAll('.theme-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      activeThemeKey = themeKey;
+      const palette = themeColors[themeKey];
+
+      // Update root variables
+      document.documentElement.style.setProperty('--accent-primary', palette.primary);
+      document.documentElement.style.setProperty('--accent-primary-subtle', palette.subtle);
+      document.documentElement.style.setProperty('--accent-primary-glow', palette.glow);
+
+      // Repaint Chart with new colors
+      if (state.activeChart) {
+        state.activeChart.data.datasets[0].backgroundColor = palette.chartBg1;
+        state.activeChart.data.datasets[0].borderColor = palette.primary;
+        state.activeChart.update();
+      }
+
+      // Sync Mascot Core glows
+      el.mascotCore.setAttribute('stroke', palette.primary);
+
+      // Synchronize ambient sound theme background
+      if (state.isPlayingSound) {
+        el.btnAmbientSound.style.background = palette.primary;
+      }
+
+      appendLog("pandas-console-log", `[theme] Synchronized UI palette accent to: ${themeKey.toUpperCase()}`);
+    });
+  });
+
+  // ==========================================================================
+  // 14. TASK BACKLOG HANDLERS (CSS CONFETTI SPARKS TRIGGERS)
+  // ==========================================================================
+  function updateTaskStats() {
+    const total = state.tasks.length;
+    const done = state.tasks.filter(t => t.done).length;
+    el.taskFraction.textContent = `${done}/${total} DONE`;
+  }
+
+  function renderTasks() {
+    el.taskList.innerHTML = '';
+    state.tasks.forEach(t => {
+      const li = document.createElement('li');
+      li.className = 'task-item';
+      
+      li.innerHTML = `
+        <label class="custom-checkbox-label">
+          <input type="checkbox" class="task-checkbox" ${t.done ? 'checked' : ''} />
+          <span class="checkbox-box"></span>
+          <span class="task-text">${t.text}</span>
+        </label>
+        <span class="task-category-tag ${t.category.toLowerCase().slice(0,2)}">${t.category}</span>
+      `;
+
+      const chk = li.querySelector('.task-checkbox');
+      chk.addEventListener('change', (e) => {
+        t.done = chk.checked;
+        updateTaskStats();
+        updateMascotExpression();
+
+        if (chk.checked) {
+          triggerConfettiParticles(e.target);
+          
+          // Mascot voice reaction
+          const successPhrases = [
+            '"Task backlog updated. Relational index cleared!"',
+            '"Milestone resolution synchronized. Excellent workflow tempo."',
+            '"Database query pool metric updated. Keep maintaining focus."'
+          ];
+          el.mascotSpeech.textContent = successPhrases[Math.floor(Math.random() * successPhrases.length)];
+          el.mascotCore.setAttribute('stroke', 'var(--accent-emerald)');
+          setTimeout(() => {
+            el.mascotCore.setAttribute('stroke', 'var(--accent-primary)');
+          }, 700);
+        }
+      });
+
+      el.taskList.appendChild(li);
+    });
+    updateTaskStats();
+  }
+
+  // Pure self-contained CSS DOM confetti particle burst
+  function triggerConfettiParticles(checkboxElement) {
+    const rect = checkboxElement.getBoundingClientRect();
+    const originX = rect.left + rect.width / 2 + window.scrollX;
+    const originY = rect.top + rect.height / 2 + window.scrollY;
+
+    const colors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e'];
+
+    for (let i = 0; i < 18; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'confetti-particle';
+      
+      // Random coordinates inside circular sweep
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 30 + Math.random() * 45;
+      const dx = Math.cos(angle) * radius;
+      const dy = Math.sin(angle) * radius;
+
+      particle.style.setProperty('--dx', `${dx}px`);
+      particle.style.setProperty('--dy', `${dy}px`);
+      particle.style.left = `${originX}px`;
+      particle.style.top = `${originY}px`;
+      particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+      document.body.appendChild(particle);
+
+      // Clean memory after finish
+      setTimeout(() => {
+        particle.remove();
+      }, 600);
+    }
+  }
+
+  function handleAddTask() {
+    const text = el.taskInput.value.trim();
+    if (!text) return;
+    
+    const categories = ["DATABASE", "BACKEND", "ANALYTICS"];
+    const randCat = categories[Math.floor(Math.random() * categories.length)];
+    
+    state.tasks.push({
+      id: Date.now(),
+      text: text,
+      done: false,
+      category: randCat
+    });
+
+    el.taskInput.value = '';
+    renderTasks();
+  }
+
+  // ==========================================================================
+  // 15. AI COACH INTUITIVE ADVISER (NO AUDIO SYNTHESIS)
   // ==========================================================================
   function handleCoachMessage() {
     const text = el.coachInput.value.trim();
@@ -798,9 +1202,8 @@ document.addEventListener('DOMContentLoaded', () => {
     appendChatMessage(text, 'user');
     el.coachInput.value = '';
 
-    // Advanced, developer-focused analytical replies (NO SPEECH TRIGGERS)
     setTimeout(() => {
-      let reply = "System context loaded. Please query details regarding database schemas, REST payloads, or attention metrics.";
+      let reply = "System diagnostics active. Query details regarding database schemas, REST payloads, or attention metrics.";
       const lower = text.toLowerCase();
 
       if (lower.includes('bottleneck') || lower.includes('pandas') || lower.includes('delay')) {
@@ -838,61 +1241,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // 12. TASK BACKLOG ACTIONS
-  // ==========================================================================
-  function updateTaskStats() {
-    const total = state.tasks.length;
-    const done = state.tasks.filter(t => t.done).length;
-    el.taskFraction.textContent = `${done}/${total} DONE`;
-  }
-
-  function renderTasks() {
-    el.taskList.innerHTML = '';
-    state.tasks.forEach(t => {
-      const li = document.createElement('li');
-      li.className = 'task-item';
-      
-      li.innerHTML = `
-        <label class="custom-checkbox-label">
-          <input type="checkbox" class="task-checkbox" ${t.done ? 'checked' : ''} />
-          <span class="checkbox-box"></span>
-          <span class="task-text">${t.text}</span>
-        </label>
-        <span class="task-category-tag ${t.category.toLowerCase().slice(0,2)}">${t.category}</span>
-      `;
-
-      const chk = li.querySelector('.task-checkbox');
-      chk.addEventListener('change', () => {
-        t.done = chk.checked;
-        updateTaskStats();
-        updateMascotExpression();
-      });
-
-      el.taskList.appendChild(li);
-    });
-    updateTaskStats();
-  }
-
-  function handleAddTask() {
-    const text = el.taskInput.value.trim();
-    if (!text) return;
-    
-    const categories = ["DATABASE", "BACKEND", "ANALYTICS"];
-    const randCat = categories[Math.floor(Math.random() * categories.length)];
-    
-    state.tasks.push({
-      id: Date.now(),
-      text: text,
-      done: false,
-      category: randCat
-    });
-
-    el.taskInput.value = '';
-    renderTasks();
-  }
-
-  // ==========================================================================
-  // 13. EVENTS WIRING
+  // 16. EVENT REGISTRATIONS & INITIALIZATIONS
   // ==========================================================================
   el.btnToggleCam.addEventListener('click', () => {
     if (state.cameraActive) stopCamera();
@@ -923,18 +1272,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') handleCoachMessage();
   });
 
-  // ==========================================================================
-  // 14. BOOTSTRAP INITIALIZATION
-  // ==========================================================================
+  // Bootstrap Inits
   updateTimerUI();
   renderTasks();
-  executeMockSQL("all");
+  executeCustomSQL("SELECT * FROM workflow_metrics;");
   resetMascotFace();
 
-  // Load placeholder chart data
-  renderChart([
-    { task_name: "Task Ingestion", duration_hours: 3.2, delay_hours: 0.8 },
-    { task_name: "MySQL Commits", duration_hours: 2.1, delay_hours: 1.4 },
-    { task_name: "Pandas Audit", duration_hours: 5.4, delay_hours: 4.1 }
-  ]);
+  // Load active chart
+  renderChart(state.mysqlDatabase);
 });

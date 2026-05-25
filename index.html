@@ -22,7 +22,7 @@
     <header class="app-header">
       <div class="logo-area">
         <div class="logo-icon-wrap">
-          <svg class="logo-svg" viewBox="0 0 24 24" width="20" height="20">
+          <svg class="logo-svg" viewBox="0 0 24 24" width="16" height="16">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="currentColor"/>
           </svg>
         </div>
@@ -46,16 +46,25 @@
         </div>
       </div>
 
-      <!-- Quick Toggles -->
+      <!-- Quick Actions, Theme Accents, Sound Toggle -->
       <div class="header-actions">
+        <!-- Google-Style Theme Swapper Pill -->
+        <div class="theme-selector" id="theme-accent-picker">
+          <div class="theme-pill cobalt active" data-accent="cobalt" title="Vercel Cobalt Blue"></div>
+          <div class="theme-pill emerald" data-accent="emerald" title="Google Emerald Green"></div>
+          <div class="theme-pill amber" data-accent="amber" title="Android Amber Gold"></div>
+          <div class="theme-pill lavender" data-accent="lavender" title="Linear Lavender Purple"></div>
+          <div class="theme-pill rose" data-accent="rose" title="Google Crimson Rose"></div>
+        </div>
+
         <button id="btn-ambient-sound" class="btn btn-secondary btn-icon-only" title="Toggle procedural soundscape (Pink Noise)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
           </svg>
         </button>
         <button id="btn-toggle-camera" class="btn btn-secondary">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" class="margin-right-sm">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
@@ -68,13 +77,13 @@
     <main class="dashboard-grid">
       
       <!-- LEFT SECTION: Camera HUD & AI Coach -->
-      <section class="grid-col col-left flex-column">
+      <section class="grid-col col-left">
         
         <!-- Webcam Attention Analyzer -->
-        <div class="glass-card camera-card flex-column" id="card-attention-vision">
-          <div class="card-header border-bottom-none">
+        <div class="glass-card camera-card" id="card-attention-vision">
+          <div class="card-header">
             <div class="header-title">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
                 <circle cx="12" cy="12" r="10"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
@@ -82,16 +91,34 @@
             </div>
             <div class="card-badges">
               <span class="badge" id="camera-status-badge">STANDBY</span>
+              <!-- Zoom focus action -->
+              <button class="btn-card-zoom" title="Toggle Fullscreen Focus" data-zoom-target="card-attention-vision">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
             </div>
           </div>
           
           <div class="camera-viewport-container">
+            <!-- Inline Server Guide Banner for insecure file context -->
+            <div class="secure-context-warning" id="camera-secure-warning" style="display: none;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" class="margin-bottom-sm">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <p>Camera blocks occur under standard <code>file:///</code> protocols.</p>
+              <p>Click below to copy and run a quick server inside this project directory:</p>
+              <div class="copyable-server-box" id="copy-server-cmd" title="Click to copy script command">npx http-server ./</div>
+            </div>
+
             <div class="video-placeholder" id="camera-placeholder">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" class="margin-bottom-sm">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" class="margin-bottom-sm">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
-              <p>Camera feed disabled. Activate streaming to gauge physical focus variables via pixel delta comparison.</p>
+              <p>Telemetry system inactive. Start streaming to calculate gaze resilience metrics in the client interface.</p>
               <button class="btn btn-secondary btn-sm" id="btn-camera-inline-start">Enable Webcam</button>
             </div>
             
@@ -114,7 +141,7 @@
 
           <div class="camera-metrics-row">
             <div class="micro-stat">
-              <span class="micro-label">FLOW TELEMETRY</span>
+              <span class="micro-label">FLOW INDEX</span>
               <span class="micro-val text-blue" id="cam-engagement-stat">94%</span>
             </div>
             <div class="micro-stat">
@@ -129,15 +156,22 @@
         </div>
 
         <!-- AI System Coach Console -->
-        <div class="glass-card coach-card flex-grow flex-column" id="card-ai-coach">
-          <div class="card-header border-bottom-none">
+        <div class="glass-card coach-card flex-grow" id="card-ai-coach">
+          <div class="card-header">
             <div class="header-title">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
               <h3>System Optimization Advisor</h3>
             </div>
-            <span class="advisor-indicator text-blue">MODEL_READY</span>
+            <div class="card-badges">
+              <span class="advisor-indicator text-blue">MODEL_READY</span>
+              <button class="btn-card-zoom" title="Toggle Fullscreen Focus" data-zoom-target="card-ai-coach">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div class="coach-chat-history flex-grow" id="coach-messages">
@@ -154,7 +188,7 @@
           <div class="coach-input-area">
             <input type="text" id="coach-input" placeholder="Type prompt (e.g. 'MySQL delays', 'bottleneck rules')..." />
             <button class="btn btn-secondary btn-icon-only" id="btn-coach-send">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="22" y1="2" x2="11" y2="13"/>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
@@ -164,13 +198,29 @@
       </section>
 
       <!-- MIDDLE SECTION: Companion wireframe, Timer, and Task Backlog -->
-      <section class="grid-col col-middle flex-column">
+      <section class="grid-col col-middle">
         
         <!-- Geometric Minimalist Wireframe Companion Mascot -->
-        <div class="glass-card mascot-card flex-column align-items-center justify-content-center" id="card-focus-mascot">
-          <div class="mascot-viewport">
+        <div class="glass-card mascot-card" id="card-focus-mascot">
+          <div class="card-header">
+            <div class="header-title">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+                <path d="M12 2L2 22h20L12 2z"/>
+              </svg>
+              <h3>Flow_Core Mesh Engine</h3>
+            </div>
+            <div class="card-badges">
+              <button class="btn-card-zoom" title="Toggle Fullscreen Focus" data-zoom-target="card-focus-mascot">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="mascot-viewport" id="mascot-viewport-element">
             <!-- Wireframe Elegant SVG Companion -->
-            <svg id="mascot-svg" class="flowy-mascot float-anim" viewBox="0 0 200 200" width="140" height="140">
+            <svg id="mascot-svg" class="flowy-mascot float-anim" viewBox="0 0 200 200" width="110" height="110">
               <defs>
                 <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -206,19 +256,18 @@
           </div>
           
           <div class="mascot-mood-info text-center">
-            <h4>FLOW_CORE ENGINE</h4>
             <div class="mood-badge" id="mascot-mood-text">STATE: DYNAMIC_CALIBRATION</div>
             <p class="mascot-subtext" id="mascot-speech">"Telemetry system operational. Ingest CSV log files or begin countdown to initiate analytics calculations."</p>
           </div>
         </div>
 
         <!-- Sleek Monochrome Pomodoro Countdown -->
-        <div class="glass-card timer-card flex-column" id="card-focus-timer">
+        <div class="glass-card timer-card" id="card-focus-timer">
           <div class="timer-display-area">
             <div class="progress-ring-wrap">
-              <svg width="150" height="150" viewBox="0 0 180 180">
+              <svg width="100" height="100" viewBox="0 0 180 180">
                 <circle class="ring-bg" cx="90" cy="90" r="76" stroke-width="3" fill="transparent"/>
-                <circle class="ring-fg" id="timer-progress-bar" cx="90" cy="90" r="76" stroke-width="4.5" fill="transparent" stroke="#2563eb" stroke-dasharray="477" stroke-dashoffset="0"/>
+                <circle class="ring-fg" id="timer-progress-bar" cx="90" cy="90" r="76" stroke-width="4.5" fill="transparent" strokeDasharray="477" strokeDashoffset="0"/>
               </svg>
               <div class="timer-text-content">
                 <span class="timer-digits" id="timer-digits">25:00</span>
@@ -235,17 +284,24 @@
         </div>
 
         <!-- Clean Task Checklist Backlog -->
-        <div class="glass-card tasks-card flex-grow flex-column" id="card-tasks-list">
-          <div class="card-header border-bottom-none">
+        <div class="glass-card tasks-card flex-grow" id="card-tasks-list">
+          <div class="card-header">
             <div class="header-title">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                 <line x1="9" y1="12" x2="15" y2="12"/>
                 <line x1="12" y1="9" x2="12" y2="15"/>
               </svg>
               <h3>Productivity Task Backlog</h3>
             </div>
-            <div class="task-count" id="task-completed-fraction">0/3 DONE</div>
+            <div class="card-badges">
+              <span class="task-count" id="task-completed-fraction">0/3 DONE</span>
+              <button class="btn-card-zoom" title="Toggle Fullscreen Focus" data-zoom-target="card-tasks-list">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div class="task-input-wrapper">
@@ -284,19 +340,28 @@
       </section>
 
       <!-- RIGHT SECTION: Tabbed Panel (Pandas Analyzer, MySQL Explorer, Swagger REST Sandbox) -->
-      <section class="grid-col col-right flex-column">
+      <section class="grid-col col-right">
         
         <!-- Tabbed Navigation Panel -->
-        <div class="glass-card tab-panel-card flex-grow flex-column">
-          <div class="tab-header-buttons">
-            <button class="tab-btn active" data-tab="tab-pandas">PANDAS LOGS</button>
-            <button class="tab-btn" data-tab="tab-mysql">MYSQL DISK</button>
-            <button class="tab-btn" data-tab="tab-swagger">REST SWAGGER</button>
+        <div class="glass-card tab-panel-card flex-grow" id="tab-panel-card">
+          <div class="card-header">
+            <div class="tab-header-buttons">
+              <button class="tab-btn active" data-tab="tab-pandas">PANDAS LOGS</button>
+              <button class="tab-btn" data-tab="tab-mysql">MYSQL DISK</button>
+              <button class="tab-btn" data-tab="tab-swagger">REST SWAGGER</button>
+            </div>
+            <div class="card-badges">
+              <button class="btn-card-zoom" title="Toggle Fullscreen Focus" data-zoom-target="tab-panel-card">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- TAB 1: PANDAS CSV ENGINE -->
           <div class="tab-content active" id="tab-pandas">
-            <div class="pandas-container flex-column flex-grow">
+            <div class="pandas-container flex-grow">
               <div class="tab-internal-header">
                 <h4>Pandas Core Data Ingestion</h4>
                 <a href="#" id="download-sample-link" class="action-link">Get sample.csv</a>
@@ -304,7 +369,7 @@
               
               <!-- Drag and drop zone -->
               <div class="upload-dropzone" id="log-uploader">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" class="margin-bottom-sm text-slate-400">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" class="margin-bottom-sm text-slate-400">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" y1="3" x2="12" y2="15"/>
@@ -315,11 +380,11 @@
               </div>
 
               <!-- Pandas Monospaced Console -->
-              <div class="pandas-insights-console">
+              <div class="pandas-insights-console flex-grow">
                 <div class="console-header">
                   <span class="console-title">pandas_analyzer.py</span>
                 </div>
-                <div class="console-body" id="pandas-console-log">
+                <div class="console-body flex-grow" id="pandas-console-log">
                   <div class="log-line system-line">[info] FocusScan Pandas engine loaded in memory scope.</div>
                   <div class="log-line system-line">[info] Awaiting CSV ingestion for delay analysis.</div>
                 </div>
@@ -329,7 +394,7 @@
 
           <!-- TAB 2: INTERACTIVE MYSQL SCHEMA & QUERY EXPLORER -->
           <div class="tab-content" id="tab-mysql">
-            <div class="mysql-container flex-column flex-grow">
+            <div class="mysql-container flex-grow">
               <div class="tab-internal-header">
                 <h4>MySQL Relational Schema Engine</h4>
                 <span class="db-size-badge">3 tables</span>
@@ -346,14 +411,16 @@
               </div>
 
               <!-- Custom SQL Query Execution Module -->
-              <div class="sql-query-executor flex-column">
-                <label class="sql-input-label">SQL Execution Query Panel</label>
+              <div class="sql-query-executor">
+                <label class="sql-input-label">SQL Execution Query Panel (Supports Custom Queries! Try SELECT, INSERT, etc.)</label>
                 <div class="sql-action-row">
-                  <select id="sql-query-preset" class="sql-select">
+                  <select id="sql-query-preset" class="sql-select" style="display: none;">
                     <option value="all">SELECT * FROM workflow_metrics;</option>
                     <option value="bottlenecks">SELECT * FROM workflow_metrics WHERE delay_hours > 1.5;</option>
                     <option value="heavy">SELECT * FROM workflow_metrics ORDER BY duration_hours DESC;</option>
                   </select>
+                  <!-- Custom input box to edit query directly -->
+                  <input type="text" id="sql-custom-input" class="sql-select" value="SELECT * FROM workflow_metrics;" placeholder="Write SQL statement..." />
                   <button class="btn btn-primary btn-sm" id="btn-execute-sql">RUN QUERY</button>
                 </div>
               </div>
@@ -373,7 +440,7 @@
                     </thead>
                     <tbody>
                       <tr>
-                        <td colspan="4" class="text-center text-slate-500">Run preset query above to retrieve MySQL operational records.</td>
+                        <td colspan="4" class="text-center text-slate-500">Run SQL query to retrieve MySQL operational records.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -384,13 +451,13 @@
 
           <!-- TAB 3: SWAGGER REST API SANDBOX -->
           <div class="tab-content" id="tab-swagger">
-            <div class="swagger-container flex-column flex-grow">
+            <div class="swagger-container flex-grow">
               <div class="tab-internal-header">
                 <h4>OpenAPI REST Router Gateway</h4>
                 <span class="api-env-badge">v1 (Production)</span>
               </div>
 
-              <p class="swagger-intro-text">Simulate client calls against planned Node.js and Python gateway handlers. Review JSON payload payloads instantly.</p>
+              <p class="swagger-intro-text">Simulate live HTTP requests against Node.js gateway handlers to check JSON metrics payloads.</p>
 
               <!-- REST Route list -->
               <div class="api-endpoints-stack">
@@ -423,16 +490,18 @@
               </div>
 
               <!-- JSON API Response Box -->
-              <div class="api-response-json-box flex-grow flex-column">
+              <div class="api-response-json-box flex-grow">
                 <div class="json-box-header">
                   <span>REST API JSON RESPONSE TELEMETRY</span>
                   <span class="json-status-code" id="api-response-status">200 OK</span>
                 </div>
-                <pre class="json-code-viewer"><code id="api-json-viewer-el">{
+                <div class="json-code-viewer">
+                  <pre class="json-code-viewer"><code id="api-json-viewer-el">{
   "status": "gateway_standby",
   "gateway": "NodeJS-REST-Server",
   "timestamp": 1779435600
 }</code></pre>
+                </div>
               </div>
             </div>
           </div>
@@ -440,19 +509,26 @@
         </div>
 
         <!-- Sleek Operational Charts Card -->
-        <div class="glass-card charts-card flex-column" id="card-visual-insights">
-          <div class="card-header border-bottom-none">
+        <div class="glass-card charts-card" id="card-visual-insights">
+          <div class="card-header">
             <div class="header-title">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" class="title-icon text-blue">
                 <line x1="18" y1="20" x2="18" y2="10"/>
                 <line x1="12" y1="20" x2="12" y2="4"/>
                 <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
               <h3>Operational delay variance</h3>
             </div>
+            <div class="card-badges">
+              <button class="btn-card-zoom" title="Toggle Fullscreen Focus" data-zoom-target="card-visual-insights">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
           </div>
           
-          <div class="chart-canvas-wrapper flex-grow">
+          <div class="chart-canvas-wrapper">
             <canvas id="insights-chart"></canvas>
           </div>
         </div>
@@ -464,10 +540,10 @@
     <!-- Footer -->
     <footer class="app-footer">
       <div class="footer-left">
-        <p>FocusScan Core v1.5.0-Release // Pure JS Client-side Telemetry Sandboxed Sandbox</p>
+        <p>FocusScan Core v1.6.0-Release // Full-Fluid Real-Time Telemetry Interface</p>
       </div>
       <div class="footer-right">
-        <span>Architected for Scalability & Workflow Inefficiency Diagnosis</span>
+        <span>Production-Grade Relational Analytics & Workflow Calibration</span>
       </div>
     </footer>
   </div>
